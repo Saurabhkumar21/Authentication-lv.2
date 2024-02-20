@@ -2,17 +2,17 @@ import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
 
-const db = new pg.Client({
-  user: "postgres",
-  password: "2598",
-  host: "localhost",
-  database: "secrets",
-  port: 5432
-});
-db.connect();
-
 const app = express();
 const port = 3000;
+
+const db = new pg.Client({
+  user: "postgres",
+  host: "localhost",
+  database: "secrets",
+  password: "2598",
+  port: 5432,
+});
+db.connect();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -30,36 +30,51 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", async (req, res) => {
-  const username = req.body.username;
+  const email = req.body.username;
   const password = req.body.password;
-  try{
-   const response =  await db.query("SELECT * FROM users WHERE email = $1", [username]);
-   if(response) {
-    console.log("Email is already registered");
-   } else{
-    await db.query("INSERT INTO users (email, password) VALUES($1, $2)", [username, password]);
-   }
-    res.render("secrets.ejs")
 
-  }catch(error){
-    console.error(error);
+  try {
+    const checkResult = await db.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+
+    if (checkResult.rows.length > 0) {
+      res.send("Email already exists. Try logging in.");
+    } else {
+      const result = await db.query(
+        "INSERT INTO users (email, password) VALUES ($1, $2)",
+        [email, password]
+      );
+      console.log(result);
+      res.render("secrets.ejs");
+    }
+  } catch (err) {
+    console.log(err);
   }
-   
 });
 
 app.post("/login", async (req, res) => {
-  const username = req.body.username;
+  const email = req.body.username;
   const password = req.body.password;
-  try{
-    const response = await db.query("SELECT * FROM users WHERE email = $1 AND password = $2", [username, password]);
-    console.log(response.rows);
-    if(response.rows.length!=0) {
-      res.render("secrets.ejs");
+
+  try {
+    const result = await db.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      const storedPassword = user.password;
+
+      if (password === storedPassword) {
+        res.render("secrets.ejs");
+      } else {
+        res.send("Incorrect Password");
+      }
     } else {
-      res.render("home.ejs");
+      res.send("User not found");
     }
-  }catch(error){
-    console.error(error);
+  } catch (err) {
+    console.log(err);
   }
 });
 
