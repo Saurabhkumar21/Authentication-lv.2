@@ -66,7 +66,7 @@ app.post("/register", async (req, res) => {
 
 app.post("/login", async (req, res) => {
   const email = req.body.username;
-  const loginPassword = req.body.password;  //12345
+  const loginPassword = req.body.password;
 
   try {
     const result = await db.query("SELECT * FROM users WHERE email = $1", [
@@ -74,7 +74,7 @@ app.post("/login", async (req, res) => {
     ]);
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      const storedPassword = user.password;   //tfrtrgtgyby
+      const storedPassword = user.password;
       bcrypt.compare(loginPassword, storedPassword, (err, result) => {
         if (result) {
           res.render("secrets.ejs");
